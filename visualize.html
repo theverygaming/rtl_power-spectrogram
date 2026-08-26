@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+            async function getMeta() {
+                const resp = await fetch("out/meta.json");
+                if (!resp.ok) {
+                    throw new Error(`err fetching meta ${resp.status}`);
+                }
+                return await resp.json();
+            }
+
+            function prepareMeta(meta) {
+                // sort by start frequency
+                meta.sort((a, b) => {
+                    return a.flow - b.flow;
+                });
+                // and each spec by start time
+                meta.forEach(x => {
+                    x.specs.sort((a, b) => {
+                        return a.ts_start - b.ts_start;
+                    });
+                });
+            }
+
+            async function main() {
+                const meta = await getMeta();
+                prepareMeta(meta);
+                console.log(meta);
+
+                // find all unique timestamps so we can prepare rows
+                const row_timestamps = [...new Set(meta.map(m => m.specs.map(s => s.ts_start)).flat(1))];
+                console.log(row_timestamps);
+
+                row_timestamps.forEach(ts => {
+                    const rowel = document.createElement("div");
+                    rowel.classList = ["spectrum-row"];
+
+                    meta.forEach(m => {
+                        m.specs.forEach(s => {
+                            if (s.ts_start != ts) {
+                                return;
+                            }
+                            const img = document.createElement("img");
+                            img.src = "out/" + s.fname;
+                            rowel.appendChild(img);
+                        });
+                    });
+                    document.getElementById("spectrum").appendChild(rowel);
+                });
+            }
+
+            window.onload = function () {
+                main();
+            }
+        </script>
+        <style>
+            #spectrumcontainer {
+                left: 0;
+                top: 0;
+                position: absolute; /* relative ? */
+                display: block;
+
+                margin: 0;
+                cursor: crosshair;
+            }
+
+            #spectrum {
+                display: flex;
+                flex-direction: column; 
+            }
+
+            .spectrum-row {
+                display: flex; 
+                flex-direction: row;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="spectrumcontainer">
+            <div id="spectrum">
+                
+            </div>
+        </div>
+    </body>
+</html>
