@@ -23,6 +23,31 @@
                 });
             }
 
+            function throttle(cb, ms) {
+                let tLastEvent = Date.now();
+                let timeoutid = null;
+                let latestArgs = null;
+                return function(ev) {
+                    latestArgs = arguments;
+                    const tremaining = ms - (Date.now() - tLastEvent);
+
+                    if (tremaining <= 0) {
+                        if (timeoutid) {
+                            clearTimeout(timeoutid);
+                            timeoutid = null;
+                        }
+                        tLastEvent = Date.now();
+                        cb.apply(null, latestArgs);
+                    } else if (!timeoutid) {
+                        timeoutid = setTimeout(() => {
+                            timeoutid = null;
+                            tLastEvent = Date.now();
+                            cb.apply(null, latestArgs);
+                        }, tremaining);
+                    }
+                };
+            }
+
             async function main() {
                 const meta = await getMeta();
                 prepareMeta(meta);
@@ -43,11 +68,35 @@
                             }
                             const img = document.createElement("img");
                             img.src = "out/" + s.fname;
+                            img.dataset.ts_start = s.ts_start;
+                            img.dataset.flow = m.flow;
+                            img.dataset.fstep = m.fstep;
                             rowel.appendChild(img);
                         });
                     });
                     document.getElementById("spectrum").appendChild(rowel);
                 });
+
+                document.getElementById("spectrumcontainer").addEventListener("mousemove", throttle((ev) => {
+                    console.log(ev);
+                    const hoveredImages = document.elementsFromPoint(ev.clientX, ev.clientY).filter(el => el.tagName == "IMG");
+                    if (!hoveredImages.length) {
+                        return;
+                    }
+                    const img = hoveredImages[0];
+
+                    // https://stackoverflow.com/a/34867233
+                    const imgx = ev.pageX - img.offsetLeft;
+                    const imgy = ev.pageY - img.offsetTop;
+
+                    const ts_start = parseFloat(img.dataset.ts_start);
+                    const flow = parseFloat(img.dataset.flow);
+                    const fstep = parseFloat(img.dataset.fstep);
+
+                    document.getElementById("infofreq").innerText = (new Intl.NumberFormat("en-US", {maximumFractionDigits: 0})).format(flow + (fstep * imgx));
+
+                    document.getElementById("infotime").innerText = "~" + (new Date(ts_start * 1000)).toLocaleTimeString("en-US", {hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false});
+                }, 100));
             }
 
             window.onload = function () {
@@ -58,7 +107,7 @@
             #spectrumcontainer {
                 left: 0;
                 top: 0;
-                position: absolute; /* relative ? */
+                position: absolute;
                 display: block;
 
                 margin: 0;
@@ -74,13 +123,36 @@
                 display: flex; 
                 flex-direction: row;
             }
+
+            #infocontainer {
+                right: 0;
+                top: 0;
+                position: fixed;
+                z-index: 10;
+                border: 1px;
+                border-style: solid;
+                border-color: yellow;
+                padding: 0.5em 0.5em 0.5em;
+            }
+
+            #info {
+                color: yellow;
+                font-size: 1.2em;
+                font-family: monospace;
+                text-align: center;
+            }
         </style>
     </head>
     <body>
-        <div id="spectrumcontainer">
-            <div id="spectrum">
-                
+        <div id="infocontainer">
+            <div id="info">
+                <span id="infofreq"></span> <span>Hz</span>
+                <br>
+                <span id="infotime"></span>
             </div>
+        </div>
+        <div id="spectrumcontainer">
+            <div id="spectrum"></div>
         </div>
     </body>
 </html>
