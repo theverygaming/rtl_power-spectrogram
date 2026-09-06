@@ -233,6 +233,7 @@ int main(int argc, char **argv) {
         if (strptime(ts_str, "%Y-%m-%d_%H:%M:%S", &tm) == nullptr) {
             EXIT_ERROR("couldn't time from metadata (line %llu)", linecounter + 1);
         }
+        tm.tm_isdst = -1; // negative value tells mktime to determine if DST is in effect
         time_t ts = mktime(&tm);
 #ifdef DEBUG_LINES
         fprintf(stderr, "DBG: ts: %s low: %lluHz high: %lluHz step: %lfHz nsamps: %u\n", ts_str, flow, fhigh, fstep, nsamps);
