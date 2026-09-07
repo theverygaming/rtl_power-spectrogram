@@ -76,18 +76,23 @@
                     });
                     document.getElementById("spectrum").appendChild(rowel);
                 });
+                
+                let mouseClientX = 0;
+                let mouseClientY = 0;
 
-                document.getElementById("spectrumcontainer").addEventListener("mousemove", throttle((ev) => {
-                    console.log(ev);
-                    const hoveredImages = document.elementsFromPoint(ev.clientX, ev.clientY).filter(el => el.tagName == "IMG");
+                function updateFreq() {
+                    const hoveredImages = document.elementsFromPoint(mouseClientX, mouseClientY).filter(el => el.tagName == "IMG");
                     if (!hoveredImages.length) {
                         return;
                     }
                     const img = hoveredImages[0];
 
+                    const mousePageX = mouseClientX + window.pageXOffset;
+                    const mousePageY = mouseClientY + window.pageYOffset;
+
                     // https://stackoverflow.com/a/34867233
-                    const imgx = ev.pageX - img.offsetLeft;
-                    const imgy = ev.pageY - img.offsetTop;
+                    const imgx = mousePageX - img.offsetLeft;
+                    const imgy = mousePageY - img.offsetTop;
 
                     const ts_start = parseFloat(img.dataset.ts_start);
                     const flow = parseFloat(img.dataset.flow);
@@ -96,7 +101,21 @@
                     document.getElementById("infofreq").innerText = (new Intl.NumberFormat("en-US", {maximumFractionDigits: 0})).format(flow + (fstep * imgx));
 
                     document.getElementById("infotime").innerText = "~" + (new Date(ts_start * 1000)).toLocaleTimeString("en-US", {hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false});
-                }, 100));
+                }
+
+                const updateMs = 20;
+
+                addEventListener("scroll", throttle((ev) => {
+                    updateFreq();
+                }, updateMs));
+
+                document.getElementById("spectrumcontainer").addEventListener("mousemove", throttle((ev) => {
+                    mouseClientX = ev.clientX;
+                    mouseClientY = ev.clientY;
+                    mousePageX = ev.pageX;
+                    mousePageY = ev.pageY;
+                    updateFreq();
+                }, updateMs));
             }
 
             window.onload = function () {
